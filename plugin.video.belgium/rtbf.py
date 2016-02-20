@@ -48,11 +48,16 @@ class Channel(channel.Channel):
         data = channel.get_url(self.main_url + "/video/detail/ajax/av?page=" + str(page) + "&timeFilter=all&orderBy=publish_view&videoId=" + str(vid_id) + "&returnMode=program&categoryId=&md5=" + str(md5))
         #data = channel.get_url(self.main_url + "/video/detail/ajax/av?page=" + str(page) + "&timeFilter=all&orderBy=more_recent&videoId=" + str(vid_id) + "&returnMode=program&categoryId=&md5=" + str(md5))
         #regex = r"""video/detail_[^?]+\?id=(\d+)".+ src="([^"]+).+\n.+rel="">([^<]+).+\n.+\n.+\n.+<strong>([^<]+)"""
-        regex = r"""video/detail_[^?]+\?id=(\d+)".+ src="([^"]+).+\n.+>([^<]+)(.+\n){3,4}.+<strong>(\d\d/\d\d/\d{4})"""
-        #regex = r"""(?s)\?id=(\d+)&c[^>]+><img class="thumb" src="([^"]+).+?<h3><[^>]+>([^<]+)</a></h3>\s+<span[^>]+><a[^>]+>([^<]+)"""
-        for id, img, title, tt, date in re.findall(regex, data):
+        #regex = r"""video/detail_[^?]+\?id=(\d+)".+ src="([^"]+).+\n.+>([^<]+)(.+\n){3,4}.+<strong>(\d\d/\d\d/\d{4})"""
+        # Updated RegExt to include more context in the request and cope with some additional description element 
+        regex = r"""video/detail_[^?]+\?id=(\d+?)".+? src="(.+?)".+?<h4>([^<]*?)</h4>.*?<h5>(.*?)\n.*?(<span data-content="(.*?)".*?)*?</h5>.+?<strong>(\d\d/\d\d/\d{4})"""
+        # Updated RegEx to include the length & count view
+        regex = r"""video/detail_[^?]+\?id=(\d+?)".+? src="(.+?)".+?<span class="duration">([^<]*?)</span>.+?<h4>([^<]*?)</h4>.*?<h5>(.*?)\n.*?(<span data-content="(.*?)".*?)*?</h5>.+?<strong>(\d\d/\d\d/\d{4}).+?Vue <strong>(\d+)"""
+        for id, img, length, title, subject, tt, descr, date, viewcount in re.findall(regex, data, re.S):
             title = title + ' - ' + date
             vurl = channel.array2url(channel_id=self.channel_id, url=id, action='play_video')
+            kwargs = dict([('playcount', viewcount), ('plotoutline', subject), ('plot', descr), ('duration', length)])
+            # Not working channel.addLink(title.replace('&#039;', "'").replace('&#034;', '"'), vurl, img, kwargs)
             channel.addLink(title.replace('&#039;', "'").replace('&#034;', '"'), vurl, img)
 
         next_page = re.search(r"""rel="(\d+)">Suivante""", data)
